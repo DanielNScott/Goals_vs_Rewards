@@ -120,7 +120,16 @@ var experiment = function(task_set,images,phase) {
       var point_image_object = new ImageObject(images['points'],[0,1])
 
       var cur_image_object = box_image_object
-      var cur_choice_pair  = (phase == 'test') ? box_image_object.getImages():goal_image_object.getImages()
+
+      if (phase == 'test'){
+         box_image_object.setOrder(cur_task.order)
+         var cur_choice_pair = box_image_object.getImages()
+      }
+      else{
+         var cur_choice_pair = goal_image_object.getImages()
+      };
+
+      // var cur_choice_pair  = (phase == 'test') ? box_image_object.getImages():goal_image_object.getImages()
 
       var response_object = {correctness: null,
                              gets_reward: null,
@@ -315,7 +324,24 @@ var experiment = function(task_set,images,phase) {
                break;
 
             case "boxes":
-               var correct = ((cur_task.order == 1 && response == 'left') || (cur_task.order == -1 && response == 'right'));
+               if (phase != 'test'){
+                  var correct = ((cur_task.order == 1 && response == 'left') || (cur_task.order == -1 && response == 'right'));
+               }
+               else{
+                  // This is horrible practice, but the output data needs fixing and I have no time.
+                  var reward_prob_list = [0.8, 0.2, 0.6, 0.4, 0.8, 0.2, 0.6, 0.4]
+                  var image_indices    = box_image_object.getImageIndices()
+
+                  if (box_image_object.getOrder() == -1) {image_indices.reverse()}
+
+                  var response_code = (response == 'left') ? 0:1
+                  var other_code    = (response_code + 1) % 2
+
+                  var response_reward_prob = reward_prob_list[image_indices[response_code]]
+                  var other_reward_prob    = reward_prob_list[image_indices[other_code   ]]
+
+                  var correct =  response_reward_prob >= other_reward_prob
+               }
 
                var reinforce_good =  cur_task.yield &&  correct
                var reinforce_bad  = !cur_task.yield && !correct
